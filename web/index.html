@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analyzer | BERT-Powered</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function() {
+            const saved = localStorage.getItem('sentiment_theme');
+            document.documentElement.setAttribute('data-theme', saved || 'dark');
+        })();
+    </script>
+</head>
+<body>
+
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🧠</div>
+            <span class="sidebar-title">Sentiment</span>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">‹</button>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-link active">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="dashboard.html" class="nav-link">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="charts.html" class="nav-link">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Charts</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">BERT-Powered · v2.0</div>
+    </aside>
+
+    <main class="main-content">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <div class="landing">
+            <div class="landing-content">
+
+                <div class="eyebrow">
+                    <span class="eyebrow-dot"></span>
+                    Live BERT inference — Python backend
+                </div>
+
+                <h1>Sentiment Analyzer</h1>
+
+                <p class="landing-subtitle">
+                    Analyze text instantly or upload a dataset. Powered by Hugging Face RoBERTa.
+                </p>
+
+                <!-- LIVE TYPING BOX -->
+                <div class="live-input">
+                    <div class="input-label-row">
+                        <span class="input-label-text">Quick analysis</span>
+                        <span class="input-hint"><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span></span>
+                    </div>
+
+                    <div class="category-row">
+                        <span class="category-label">Review type</span>
+                        <select class="category-select" id="categorySelect">
+                            <option value="movie">🎬 Movie / TV</option>
+                            <option value="product">🛍️ Product</option>
+                            <option value="restaurant">🍽️ Restaurant</option>
+                            <option value="youtube">📺 YouTube Comment</option>
+                            <option value="social">🐦 Social Media</option>
+                            <option value="service">💼 Service</option>
+                            <option value="general" selected>📝 General</option>
+                        </select>
+                    </div>
+
+                    <div class="textarea-wrapper">
+                        <textarea id="userInput" placeholder="Type any comment or review..."></textarea>
+
+                        <button class="emoji-btn" id="emojiBtn" type="button" title="Add emoji">😊</button>
+
+                        <div class="emoji-panel" id="emojiPanel">
+                            <!-- Smileys & Emotions -->
+                            <div class="emoji-category-label">Smileys & Emotions</div>
+                            <div class="emoji-grid">
+                                <button class="emoji-item" data-emoji="😀">😀</button>
+                                <button class="emoji-item" data-emoji="😃">😃</button>
+                                <button class="emoji-item" data-emoji="😄">😄</button>
+                                <button class="emoji-item" data-emoji="😁">😁</button>
+                                <button class="emoji-item" data-emoji="😆">😆</button>
+                                <button class="emoji-item" data-emoji="😅">😅</button>
+                                <button class="emoji-item" data-emoji="🤣">🤣</button>
+                                <button class="emoji-item" data-emoji="😂">😂</button>
+                                <button class="emoji-item" data-emoji="🙂">🙂</button>
+                                <button class="emoji-item" data-emoji="🙃">🙃</button>
+                                <button class="emoji-item" data-emoji="😉">😉</button>
+                                <button class="emoji-item" data-emoji="😊">😊</button>
+                                <button class="emoji-item" data-emoji="😇">😇</button>
+                                <button class="emoji-item" data-emoji="🥰">🥰</button>
+                                <button class="emoji-item" data-emoji="😍">😍</button>
+                                <button class="emoji-item" data-emoji="🤩">🤩</button>
+                                <button class="emoji-item" data-emoji="😘">😘</button>
+                                <button class="emoji-item" data-emoji="🥲">🥲</button>
+                                <button class="emoji-item" data-emoji="😋">😋</button>
+                                <button class="emoji-item" data-emoji="😜">😜</button>
+                                <button class="emoji-item" data-emoji="🤪">🤪</button>
+                                <button class="emoji-item" data-emoji="🤗">🤗</button>
+                                <button class="emoji-item" data-emoji="🤔">🤔</button>
+                                <button class="emoji-item" data-emoji="🤨">🤨</button>
+                                <button class="emoji-item" data-emoji="😐">😐</button>
+                                <button class="emoji-item" data-emoji="😑">😑</button>
+                                <button class="emoji-item" data-emoji="😏">😏</button>
+                                <button class="emoji-item" data-emoji="😒">😒</button>
+                                <button class="emoji-item" data-emoji="🙄">🙄</button>
+                                <button class="emoji-item" data-emoji="😬">😬</button>
+                                <button class="emoji-item" data-emoji="😔">😔</button>
+                                <button class="emoji-item" data-emoji="😴">😴</button>
+                                <button class="emoji-item" data-emoji="🤒">🤒</button>
+                                <button class="emoji-item" data-emoji="🤢">🤢</button>
+                                <button class="emoji-item" data-emoji="🥵">🥵</button>
+                                <button class="emoji-item" data-emoji="🥶">🥶</button>
+                                <button class="emoji-item" data-emoji="🤯">🤯</button>
+                                <button class="emoji-item" data-emoji="🥳">🥳</button>
+                                <button class="emoji-item" data-emoji="😎">😎</button>
+                                <button class="emoji-item" data-emoji="🤓">🤓</button>
+                                <button class="emoji-item" data-emoji="😕">😕</button>
+                                <button class="emoji-item" data-emoji="🙁">🙁</button>
+                                <button class="emoji-item" data-emoji="😮">😮</button>
+                                <button class="emoji-item" data-emoji="😲">😲</button>
+                                <button class="emoji-item" data-emoji="😳">😳</button>
+                                <button class="emoji-item" data-emoji="🥺">🥺</button>
+                                <button class="emoji-item" data-emoji="😨">😨</button>
+                                <button class="emoji-item" data-emoji="😢">😢</button>
+                                <button class="emoji-item" data-emoji="😭">😭</button>
+                                <button class="emoji-item" data-emoji="😱">😱</button>
+                                <button class="emoji-item" data-emoji="😩">😩</button>
+                                <button class="emoji-item" data-emoji="😫">😫</button>
+                                <button class="emoji-item" data-emoji="😤">😤</button>
+                                <button class="emoji-item" data-emoji="😡">😡</button>
+                                <button class="emoji-item" data-emoji="😠">😠</button>
+                                <button class="emoji-item" data-emoji="🤬">🤬</button>
+                                <button class="emoji-item" data-emoji="😈">😈</button>
+                                <button class="emoji-item" data-emoji="💀">💀</button>
+                                <button class="emoji-item" data-emoji="💩">💩</button>
+                                <button class="emoji-item" data-emoji="🤡">🤡</button>
+                                <button class="emoji-item" data-emoji="👻">👻</button>
+                                <button class="emoji-item" data-emoji="👽">👽</button>
+                                <button class="emoji-item" data-emoji="🤖">🤖</button>
+                            </div>
+
+                            <!-- Gestures & People -->
+                            <div class="emoji-category-label">Gestures & People</div>
+                            <div class="emoji-grid">
+                                <button class="emoji-item" data-emoji="👋">👋</button>
+                                <button class="emoji-item" data-emoji="🤚">🤚</button>
+                                <button class="emoji-item" data-emoji="✋">✋</button>
+                                <button class="emoji-item" data-emoji="👌">👌</button>
+                                <button class="emoji-item" data-emoji="✌️">✌️</button>
+                                <button class="emoji-item" data-emoji="🤞">🤞</button>
+                                <button class="emoji-item" data-emoji="🤟">🤟</button>
+                                <button class="emoji-item" data-emoji="🤘">🤘</button>
+                                <button class="emoji-item" data-emoji="🤙">🤙</button>
+                                <button class="emoji-item" data-emoji="👈">👈</button>
+                                <button class="emoji-item" data-emoji="👉">👉</button>
+                                <button class="emoji-item" data-emoji="👆">👆</button>
+                                <button class="emoji-item" data-emoji="👇">👇</button>
+                                <button class="emoji-item" data-emoji="☝️">☝️</button>
+                                <button class="emoji-item" data-emoji="👍">👍</button>
+                                <button class="emoji-item" data-emoji="👎">👎</button>
+                                <button class="emoji-item" data-emoji="✊">✊</button>
+                                <button class="emoji-item" data-emoji="👊">👊</button>
+                                <button class="emoji-item" data-emoji="👏">👏</button>
+                                <button class="emoji-item" data-emoji="🙌">🙌</button>
+                                <button class="emoji-item" data-emoji="🤝">🤝</button>
+                                <button class="emoji-item" data-emoji="🙏">🙏</button>
+                                <button class="emoji-item" data-emoji="💪">💪</button>
+                                <button class="emoji-item" data-emoji="💅">💅</button>
+                                <button class="emoji-item" data-emoji="👀">👀</button>
+                                <button class="emoji-item" data-emoji="🧠">🧠</button>
+                                <button class="emoji-item" data-emoji="👶">👶</button>
+                                <button class="emoji-item" data-emoji="👦">👦</button>
+                                <button class="emoji-item" data-emoji="👧">👧</button>
+                                <button class="emoji-item" data-emoji="👨">👨</button>
+                                <button class="emoji-item" data-emoji="👩">👩</button>
+                                <button class="emoji-item" data-emoji="👴">👴</button>
+                                <button class="emoji-item" data-emoji="👵">👵</button>
+                                <button class="emoji-item" data-emoji="🙈">🙈</button>
+                                <button class="emoji-item" data-emoji="🙉">🙉</button>
+                                <button class="emoji-item" data-emoji="🙊">🙊</button>
+                            </div>
+
+                            <!-- Hearts & Love -->
+                            <div class="emoji-category-label">Hearts & Love</div>
+                            <div class="emoji-grid">
+                                <button class="emoji-item" data-emoji="❤️">❤️</button>
+                                <button class="emoji-item" data-emoji="🧡">🧡</button>
+                                <button class="emoji-item" data-emoji="💛">💛</button>
+                                <button class="emoji-item" data-emoji="💚">💚</button>
+                                <button class="emoji-item" data-emoji="💙">💙</button>
+                                <button class="emoji-item" data-emoji="💜">💜</button>
+                                <button class="emoji-item" data-emoji="🖤">🖤</button>
+                                <button class="emoji-item" data-emoji="🤍">🤍</button>
+                                <button class="emoji-item" data-emoji="💔">💔</button>
+                                <button class="emoji-item" data-emoji="💕">💕</button>
+                                <button class="emoji-item" data-emoji="💞">💞</button>
+                                <button class="emoji-item" data-emoji="💓">💓</button>
+                                <button class="emoji-item" data-emoji="💗">💗</button>
+                                <button class="emoji-item" data-emoji="💖">💖</button>
+                                <button class="emoji-item" data-emoji="💘">💘</button>
+                                <button class="emoji-item" data-emoji="💝">💝</button>
+                                <button class="emoji-item" data-emoji="💋">💋</button>
+                                <button class="emoji-item" data-emoji="💌">💌</button>
+                                <button class="emoji-item" data-emoji="🌹">🌹</button>
+                                <button class="emoji-item" data-emoji="💐">💐</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="live-actions">
+                        <button class="btn-analyze" id="analyzeBtn" disabled>
+                            <span id="analyzeBtnText">Loading model...</span>
+                        </button>
+                        <button class="btn-clear" id="clearBtn">Clear</button>
+                        <span class="model-status">
+                            <span class="status-dot loading" id="statusDot"></span>
+                            <span id="statusText">Checking server...</span>
+                        </span>
+                    </div>
+
+                    <div class="example-chips">
+                        <span class="chip-label">Examples</span>
+                        <span class="chip" data-example="This product is absolutely amazing!">😊 Positive</span>
+                        <span class="chip" data-example="Terrible quality, broke in a week.">😠 Negative</span>
+                        <span class="chip" data-example="It's okay, nothing special.">😐 Neutral</span>
+                        <span class="chip" data-example="Wow, another delay. Truly fantastic. 🙄">🎭 Sarcasm</span>
+                    </div>
+
+                    <div class="live-result" id="liveResult">
+                        <div class="result-header" id="resultHeader"></div>
+                        <div class="result-details">
+                            <span>Confidence: <strong id="resultScore">0%</strong></span>
+                            <span>Model: <strong>RoBERTa (server)</strong></span>
+                            <span class="saved-badge" id="savedBadge" style="display:none;">✓ Added</span>
+                        </div>
+                        <div class="result-bar"><div class="result-bar-fill" id="resultBarFill"></div></div>
+                    </div>
+                </div>
+
+                <!-- UPLOAD SECTION -->
+                <div class="upload-section">
+                    <div class="upload-divider">
+                        <span>Or analyze a whole dataset</span>
+                    </div>
+
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="fileInput" accept=".csv,.txt,.xlsx" hidden>
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-title">Drop your CSV or TXT file here</div>
+                        <div class="upload-subtitle">or click to browse</div>
+                        <button class="upload-browse-btn" id="browseBtn">Choose file</button>
+                    </div>
+
+                    <div class="file-preview" id="filePreview" style="display:none;">
+                        <div class="file-preview-icon">📄</div>
+                        <div class="file-preview-info">
+                            <div class="file-preview-name" id="fileName">—</div>
+                            <div class="file-preview-size" id="fileSize">—</div>
+                        </div>
+                        <button class="file-preview-remove" id="removeFile">✕</button>
+                    </div>
+
+                    <div class="upload-controls" id="uploadControls" style="display:none;">
+                        <div class="row-limit-group">
+                            <span class="row-limit-label">Rows to analyze</span>
+                            <select class="row-limit-select" id="rowLimit">
+                                <option value="100">100</option>
+                                <option value="250">250</option>
+                                <option value="500" selected>500</option>
+                                <option value="1000">1,000</option>
+                                <option value="2000">2,000</option>
+                            </select>
+                        </div>
+                        <div class="row-limit-group">
+                            <span class="row-limit-label">Review category</span>
+                            <select class="row-limit-select" id="uploadCategory">
+                                <option value="movie">🎬 Movie / TV</option>
+                                <option value="product">🛍️ Product</option>
+                                <option value="restaurant">🍽️ Restaurant</option>
+                                <option value="youtube">📺 YouTube Comment</option>
+                                <option value="social">🐦 Social Media</option>
+                                <option value="service">💼 Service</option>
+                                <option value="general" selected>📝 General</option>
+                            </select>
+                        </div>
+                        <button class="btn-upload-analyze" id="uploadAnalyzeBtn">
+                            🚀 Analyze Dataset
+                        </button>
+                    </div>
+
+                    <div class="upload-progress" id="uploadProgress" style="display:none;">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-status" id="progressStatus">Uploading...</div>
+                    </div>
+
+                    <div class="upload-error" id="uploadError" style="display:none;">
+                        <span>⚠️</span>
+                        <span id="uploadErrorMsg">Something went wrong</span>
+                    </div>
+                </div>
+
+                <div class="stack">
+                    <span class="stack-badge">🐍 Python</span>
+                    <span class="stack-badge bert">🧠 RoBERTa</span>
+                    <span class="stack-badge">⚡ Flask</span>
+                    <span class="stack-badge">🤗 Hugging Face</span>
+                    <span class="stack-badge">💾 API</span>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // THEME TOGGLE
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('sentiment_theme', next);
+        });
+
+        // SIDEBAR TOGGLE
+        const sidebar = document.getElementById('sidebar');
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        // EMOJI PICKER
+        const emojiBtn = document.getElementById('emojiBtn');
+        const emojiPanel = document.getElementById('emojiPanel');
+        const userInput = document.getElementById('userInput');
+        emojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiPanel.classList.toggle('show');
+        });
+        document.querySelectorAll('.emoji-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const start = userInput.selectionStart;
+                const end = userInput.selectionEnd;
+                const v = userInput.value;
+                userInput.value = v.slice(0, start) + btn.dataset.emoji + v.slice(end);
+                userInput.selectionStart = userInput.selectionEnd = start + btn.dataset.emoji.length;
+                emojiPanel.classList.remove('show');
+                userInput.focus();
+            });
+        });
+        document.addEventListener('click', (e) => {
+            if (!emojiPanel.contains(e.target) && e.target !== emojiBtn) emojiPanel.classList.remove('show');
+        });
+
+        // CATEGORY
+        const categorySelect = document.getElementById('categorySelect');
+        const LS_KEY_CATEGORY = 'sentiment_last_category';
+        const LS_KEY_REVIEWS = 'sentiment_reviews';
+        if (localStorage.getItem(LS_KEY_CATEGORY)) categorySelect.value = localStorage.getItem(LS_KEY_CATEGORY);
+        categorySelect.addEventListener('change', () => localStorage.setItem(LS_KEY_CATEGORY, categorySelect.value));
+
+        // ---------- ANALYZE VIA SERVER (LIVE BOX) ----------
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const analyzeBtnTxt = document.getElementById('analyzeBtnText');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const savedBadge = document.getElementById('savedBadge');
+
+        (async () => {
+            try {
+                const res = await fetch('/api/info');
+                await res.json();
+                statusDot.className = 'status-dot ready';
+                statusText.textContent = 'Server ready';
+                analyzeBtnTxt.textContent = 'Analyze';
+                analyzeBtn.disabled = false;
+            } catch (err) {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Server offline';
+                analyzeBtnTxt.textContent = 'Offline';
+            }
+        })();
+
+        async function analyzeUserInput() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            analyzeBtn.disabled = true;
+            analyzeBtnTxt.textContent = 'Analyzing...';
+            savedBadge.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/analyze-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, category: categorySelect.value })
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                const cls = data.label;
+                const label = cls === 'positive' ? 'POSITIVE 😊' : cls === 'negative' ? 'NEGATIVE 😠' : 'NEUTRAL 😐';
+                const box = document.getElementById('liveResult');
+                box.className = 'live-result show ' + cls;
+                document.getElementById('resultHeader').textContent = label;
+                document.getElementById('resultHeader').className = 'result-header ' + cls;
+                document.getElementById('resultScore').textContent = (data.score * 100).toFixed(1) + '%';
+
+                const bar = document.getElementById('resultBarFill');
+                bar.style.width = (data.score * 100) + '%';
+                bar.style.background = cls === 'positive'
+                    ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                    : cls === 'negative'
+                    ? 'linear-gradient(90deg, #f87171, #ef4444)'
+                    : 'linear-gradient(90deg, #94a3b8, #64748b)';
+
+                const reviews = JSON.parse(localStorage.getItem(LS_KEY_REVIEWS) || '[]');
+                reviews.push({
+                    text, predicted: cls, score: data.score,
+                    category: categorySelect.value, source: 'typed',
+                    added_at: new Date().toISOString()
+                });
+                localStorage.setItem(LS_KEY_REVIEWS, JSON.stringify(reviews));
+
+                savedBadge.style.display = 'inline-flex';
+                setTimeout(() => savedBadge.style.display = 'none', 2500);
+            } catch (err) {
+                console.error(err);
+                alert('Analysis failed: ' + err.message);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtnTxt.textContent = 'Analyze';
+            }
+        }
+
+        analyzeBtn.addEventListener('click', analyzeUserInput);
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            userInput.value = '';
+            document.getElementById('liveResult').className = 'live-result';
+        });
+        userInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') analyzeUserInput();
+            if (e.key === 'Escape') emojiPanel.classList.remove('show');
+        });
+        document.querySelectorAll('.chip[data-example]').forEach(c => {
+            c.addEventListener('click', () => {
+                userInput.value = c.dataset.example;
+                analyzeUserInput();
+            });
+        });
+
+        // ---------- UPLOAD FLOW ----------
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFile = document.getElementById('removeFile');
+        const uploadControls = document.getElementById('uploadControls');
+        const uploadAnalyzeBtn = document.getElementById('uploadAnalyzeBtn');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressStatus = document.getElementById('progressStatus');
+        const uploadError = document.getElementById('uploadError');
+        const uploadErrorMsg = document.getElementById('uploadErrorMsg');
+
+        let selectedFile = null;
+
+        browseBtn.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover'].forEach(ev => {
+            uploadZone.addEventListener(ev, (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('drag-over');
+            });
+        });
+        ['dragleave', 'drop'].forEach(ev => {
+            uploadZone.addEventListener(ev, (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('drag-over');
+            });
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            uploadZone.style.display = 'none';
+            filePreview.style.display = 'flex';
+            uploadControls.style.display = 'flex';
+            uploadError.style.display = 'none';
+            uploadProgress.style.display = 'none';
+        }
+
+        removeFile.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            uploadZone.style.display = 'block';
+            filePreview.style.display = 'none';
+            uploadControls.style.display = 'none';
+        });
+
+        uploadAnalyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const limit = document.getElementById('rowLimit').value;
+            const category = document.getElementById('uploadCategory').value;
+
+            uploadAnalyzeBtn.disabled = true;
+            uploadProgress.style.display = 'block';
+            uploadError.style.display = 'none';
+            progressFill.style.width = '5%';
+            progressStatus.textContent = 'Uploading file...';
+
+            let progress = 5;
+            const progressInterval = setInterval(() => {
+                progress = Math.min(progress + 2, 90);
+                progressFill.style.width = progress + '%';
+                if (progress < 30) progressStatus.textContent = 'Uploading file...';
+                else if (progress < 60) progressStatus.textContent = 'Running BERT analysis...';
+                else progressStatus.textContent = 'Almost done...';
+            }, 500);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('limit', limit);
+                formData.append('category', category);
+
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                clearInterval(progressInterval);
+
+                if (!data.success) throw new Error(data.error || 'Analysis failed');
+
+                progressFill.style.width = '100%';
+                progressStatus.textContent = `✓ Done! ${data.rows_analyzed} rows in ${data.processing_time}s`;
+
+                localStorage.removeItem(LS_KEY_REVIEWS);
+                localStorage.removeItem('sentiment_dataset_signature');
+
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 800);
+            } catch (err) {
+                clearInterval(progressInterval);
+                uploadProgress.style.display = 'none';
+                uploadError.style.display = 'flex';
+                uploadErrorMsg.textContent = err.message;
+                uploadAnalyzeBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

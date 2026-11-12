@@ -1,0 +1,18 @@
+{
+  "source_file": "iphone.csv",
+  "file_type": "csv",
+  "analyzed_at": "2026-10-12T15:37:19",
+  "total_rows_in_file": 3062,
+  "rows_analyzed": 97,
+  "text_column": "reviewDescription",
+  "has_labels": false,
+  "label_column": null,
+  "model": "cardiffnlp/twitter-roberta-base-sentiment-latest",
+  "category": "product",
+  "classes": [
+    "positive",
+    "neutral",
+    "negative"
+  ],
+  "processing_time_seconds": 36.5
+}

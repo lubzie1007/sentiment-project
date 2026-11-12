@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charts | Sentiment Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        (function() {
+            const saved = localStorage.getItem('sentiment_theme');
+            document.documentElement.setAttribute('data-theme', saved || 'dark');
+        })();
+    </script>
+    <style>
+        .chart-box { position: relative; overflow: hidden; }
+        .chart-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.4;
+        }
+        .chart-box h3 { letter-spacing: -0.01em; }
+        .chart-box canvas { max-height: 340px; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🧠</div>
+            <span class="sidebar-title">Sentiment</span>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">‹</button>
+
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-link">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </a>
+            <a href="dashboard.html" class="nav-link">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="charts.html" class="nav-link active">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Charts</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">BERT-Powered · v1.0</div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="page-header">
+            <div class="page-header-content">
+                <h1>Sentiment Distribution</h1>
+                <p>Visual analysis of sentiment patterns across your dataset.</p>
+            </div>
+        </header>
+
+        <div class="container">
+
+            <section class="section">
+                <div class="stat-row" id="statRow">
+                    <div class="loading"><div class="spinner"></div>Loading...</div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="charts">
+                    <div class="chart-box">
+                        <h3>🥧 Sentiment Split</h3>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3>📊 Confidence Distribution</h3>
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="charts">
+                    <div class="chart-box">
+                        <h3>🏷️ Category Breakdown</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3>🎯 Sentiment by Category</h3>
+                        <canvas id="categorySentimentChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="charts">
+                    <div class="chart-box full">
+                        <h3>📈 Confidence Trend Across Reviews</h3>
+                        <canvas id="areaChart" height="110"></canvas>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <footer class="footer">
+            <p>Sentiment Analyzer · BERT-Powered · <a href="index.html">Back to Home</a></p>
+        </footer>
+    </main>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('sentiment_theme', next);
+            if (allReviews.length > 0) renderAllCharts();
+        });
+
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+        });
+
+        function getThemeColors() {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            return {
+                label:     isLight ? '#475569' : '#94a3b8',
+                grid:      isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(148, 163, 184, 0.08)',
+                tooltipBg: isLight ? '#0f172a' : '#1e293b',
+                tooltipFg: '#f1f5f9',
+                pos:       isLight ? '#10b981' : '#4ade80',
+                neu:       isLight ? '#94a3b8' : '#64748b',
+                neg:       isLight ? '#ef4444' : '#f87171',
+                accent:    isLight ? '#2563eb' : '#60a5fa'
+            };
+        }
+
+        const LS_KEY_REVIEWS = 'sentiment_reviews';
+        const LS_KEY_SIGNATURE = 'sentiment_dataset_signature';
+
+        const CATEGORY_META = {
+            movie:      { icon: '🎬', label: 'Movie/TV',  color: '#f59e0b' },
+            product:    { icon: '🛍️', label: 'Product',   color: '#ec4899' },
+            restaurant: { icon: '🍽️', label: 'Restaurant',color: '#10b981' },
+            youtube:    { icon: '📺', label: 'YouTube',   color: '#ef4444' },
+            social:     { icon: '🐦', label: 'Social',    color: '#06b6d4' },
+            service:    { icon: '💼', label: 'Service',   color: '#8b5cf6' },
+            general:    { icon: '📝', label: 'General',   color: '#64748b' }
+        };
+
+        let allReviews = [];
+        let pieChart, barChart, areaChart, categoryChart, categorySentimentChart;
+
+        async function loadCharts() {
+            try {
+                const [fileResults, info] = await Promise.all([
+                    fetch('results.json').then(r => r.json()),
+                    fetch('dataset_info.json').then(r => r.json())
+                ]);
+
+                const signature = `${info.source_file}|${info.analyzed_at}|${info.rows_analyzed}`;
+                const storedSignature = localStorage.getItem(LS_KEY_SIGNATURE);
+                const storedReviews   = localStorage.getItem(LS_KEY_REVIEWS);
+
+                if (storedSignature === signature && storedReviews) {
+                    allReviews = JSON.parse(storedReviews);
+                } else {
+                    allReviews = fileResults.map(r => ({
+                        text: r.text,
+                        predicted: r.predicted,
+                        score: r.score,
+                        category: r.category || 'general',
+                        source: 'file',
+                        added_at: null
+                    }));
+                }
+
+                renderStatCards();
+                renderAllCharts();
+            } catch (err) {
+                console.error('Charts load error:', err);
+                document.getElementById('statRow').innerHTML =
+                    `<div style="color: var(--negative);">⚠️ Could not load results. Run the Python analyzer first.</div>`;
+            }
+        }
+
+        function renderStatCards() {
+            const total = allReviews.length;
+            const positive = allReviews.filter(r => r.predicted === 'positive').length;
+            const negative = allReviews.filter(r => r.predicted === 'negative').length;
+            const neutral  = allReviews.filter(r => r.predicted === 'neutral').length;
+            const posPct = total ? ((positive / total) * 100).toFixed(1) : '0.0';
+            const neuPct = total ? ((neutral / total) * 100).toFixed(1) : '0.0';
+            const negPct = total ? ((negative / total) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('statRow').innerHTML = `
+                <div class="stat-card total">
+                    <div class="stat-label">Total Reviews</div>
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-sub">across the dataset</div>
+                </div>
+                <div class="stat-card positive">
+                    <div class="stat-label">Positive</div>
+                    <div class="stat-value">${positive}</div>
+                    <div class="stat-sub">${posPct}% of total</div>
+                </div>
+                <div class="stat-card neutral">
+                    <div class="stat-label">Neutral</div>
+                    <div class="stat-value">${neutral}</div>
+                    <div class="stat-sub">${neuPct}% of total</div>
+                </div>
+                <div class="stat-card negative">
+                    <div class="stat-label">Negative</div>
+                    <div class="stat-value">${negative}</div>
+                    <div class="stat-sub">${negPct}% of total</div>
+                </div>
+            `;
+        }
+
+        function renderAllCharts() {
+            renderPie();
+            renderBar();
+            renderCategoryChart();
+            renderCategorySentimentChart();
+            renderArea();
+        }
+
+        function renderPie() {
+            const c = getThemeColors();
+            const positive = allReviews.filter(r => r.predicted === 'positive').length;
+            const neutral  = allReviews.filter(r => r.predicted === 'neutral').length;
+            const negative = allReviews.filter(r => r.predicted === 'negative').length;
+
+            if (pieChart) pieChart.destroy();
+            const ctx = document.getElementById('pieChart').getContext('2d');
+
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Neutral', 'Negative'],
+                    datasets: [{
+                        data: [positive, neutral, negative],
+                        backgroundColor: [c.pos, c.neu, c.neg],
+                        borderWidth: 0,
+                        hoverOffset: 12,
+                        spacing: 3,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '72%',
+                    animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: c.label, padding: 18, font: { size: 12, weight: '600', family: 'Inter' }, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8 }
+                        },
+                        tooltip: {
+                            backgroundColor: c.tooltipBg, titleColor: c.tooltipFg, bodyColor: c.tooltipFg,
+                            padding: 14, cornerRadius: 10, displayColors: false,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, family: 'Inter' },
+                            callbacks: {
+                                title: (items) => items[0].label,
+                                label: (context) => {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total ? ((context.parsed / total) * 100).toFixed(1) : '0.0';
+                                    return `${context.parsed} reviews · ${pct}%`;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'centerText',
+                    afterDraw(chart) {
+                        const { ctx, chartArea } = chart;
+                        if (!chartArea) return;
+                        const cx = (chartArea.left + chartArea.right) / 2;
+                        const cy = (chartArea.top + chartArea.bottom) / 2;
+                        ctx.save();
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = '800 32px Inter, sans-serif';
+                        ctx.fillStyle = c.label;
+                        ctx.fillText(allReviews.length, cx, cy - 8);
+                        ctx.font = '600 11px Inter, sans-serif';
+                        ctx.globalAlpha = 0.7;
+                        ctx.fillText('REVIEWS', cx, cy + 18);
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        function renderBar() {
+            const c = getThemeColors();
+            const buckets = { '90-100%': 0, '70-90%': 0, '50-70%': 0, '<50%': 0 };
+            allReviews.forEach(r => {
+                const pct = r.score * 100;
+                if (pct >= 90) buckets['90-100%']++;
+                else if (pct >= 70) buckets['70-90%']++;
+                else if (pct >= 50) buckets['50-70%']++;
+                else buckets['<50%']++;
+            });
+
+            if (barChart) barChart.destroy();
+            const ctx = document.getElementById('barChart').getContext('2d');
+            const gradients = [
+                makeGradient(ctx, '#4ade80', '#22c55e'),
+                makeGradient(ctx, '#60a5fa', '#3b82f6'),
+                makeGradient(ctx, '#fbbf24', '#f59e0b'),
+                makeGradient(ctx, '#f87171', '#ef4444')
+            ];
+
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(buckets),
+                    datasets: [{
+                        label: 'Reviews',
+                        data: Object.values(buckets),
+                        backgroundColor: gradients,
+                        borderRadius: 12,
+                        borderSkipped: false,
+                        barPercentage: 0.55,
+                        categoryPercentage: 0.85
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    animation: { duration: 800, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: c.tooltipBg, titleColor: c.tooltipFg, bodyColor: c.tooltipFg,
+                            padding: 14, cornerRadius: 10, displayColors: false,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, family: 'Inter' },
+                            callbacks: {
+                                title: (items) => `Confidence ${items[0].label}`,
+                                label: (context) => `${context.parsed.y} reviews`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: c.label, font: { size: 11, family: 'Inter' }, padding: 8 }, grid: { color: c.grid, drawBorder: false }, border: { display: false } },
+                        x: { ticks: { color: c.label, font: { size: 11, weight: '600', family: 'Inter' }, padding: 8 }, grid: { display: false }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function makeGradient(ctx, top, bottom) {
+            const g = ctx.createLinearGradient(0, 0, 0, 320);
+            g.addColorStop(0, top);
+            g.addColorStop(1, bottom);
+            return g;
+        }
+
+        function renderCategoryChart() {
+            const c = getThemeColors();
+            const counts = {};
+            allReviews.forEach(r => {
+                const cat = r.category || 'general';
+                counts[cat] = (counts[cat] || 0) + 1;
+            });
+
+            const labels = [];
+            const values = [];
+            const colors = [];
+            Object.keys(counts).forEach(cat => {
+                const meta = CATEGORY_META[cat] || CATEGORY_META.general;
+                labels.push(`${meta.icon} ${meta.label}`);
+                values.push(counts[cat]);
+                colors.push(meta.color);
+            });
+
+            if (categoryChart) categoryChart.destroy();
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 10,
+                        spacing: 3,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    cutout: '68%',
+                    animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: c.label, padding: 14, font: { size: 11, weight: '600', family: 'Inter' }, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8 }
+                        },
+                        tooltip: {
+                            backgroundColor: c.tooltipBg, titleColor: c.tooltipFg, bodyColor: c.tooltipFg,
+                            padding: 14, cornerRadius: 10, displayColors: false,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, family: 'Inter' },
+                            callbacks: {
+                                label: (context) => {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total ? ((context.parsed / total) * 100).toFixed(1) : '0.0';
+                                    return `${context.parsed} reviews · ${pct}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCategorySentimentChart() {
+            const c = getThemeColors();
+            const categories = Object.keys(CATEGORY_META);
+            const posData = categories.map(cat =>
+                allReviews.filter(r => (r.category || 'general') === cat && r.predicted === 'positive').length
+            );
+            const neuData = categories.map(cat =>
+                allReviews.filter(r => (r.category || 'general') === cat && r.predicted === 'neutral').length
+            );
+            const negData = categories.map(cat =>
+                allReviews.filter(r => (r.category || 'general') === cat && r.predicted === 'negative').length
+            );
+
+            const labels = categories.map(cat => `${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}`);
+
+            if (categorySentimentChart) categorySentimentChart.destroy();
+            const ctx = document.getElementById('categorySentimentChart').getContext('2d');
+
+            categorySentimentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Positive', data: posData, backgroundColor: c.pos, borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.7 },
+                        { label: 'Neutral',  data: neuData, backgroundColor: c.neu, borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.7 },
+                        { label: 'Negative', data: negData, backgroundColor: c.neg, borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.7 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    animation: { duration: 800, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: c.label, padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '600', family: 'Inter' } }
+                        },
+                        tooltip: {
+                            backgroundColor: c.tooltipBg, titleColor: c.tooltipFg, bodyColor: c.tooltipFg,
+                            padding: 14, cornerRadius: 10, displayColors: true,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, family: 'Inter' }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: c.label, font: { size: 11, family: 'Inter' }, padding: 8 }, grid: { color: c.grid, drawBorder: false }, border: { display: false } },
+                        x: { ticks: { color: c.label, font: { size: 10, weight: '600', family: 'Inter' }, padding: 8 }, grid: { display: false }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderArea() {
+            const c = getThemeColors();
+            const labels = [];
+            const smoothConfidence = [];
+
+            allReviews.forEach((r, i) => { labels.push(`#${i + 1}`); });
+
+            const windowSize = Math.max(3, Math.floor(allReviews.length / 20));
+            allReviews.forEach((_, i) => {
+                const start = Math.max(0, i - windowSize);
+                const end = Math.min(allReviews.length, i + windowSize);
+                const slice = allReviews.slice(start, end);
+                const avg = slice.reduce((a, r) => a + r.score, 0) / slice.length;
+                smoothConfidence.push(avg * 100);
+            });
+
+            if (areaChart) areaChart.destroy();
+            const ctx = document.getElementById('areaChart').getContext('2d');
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+            const areaGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            if (isLight) {
+                areaGradient.addColorStop(0, 'rgba(59, 130, 246, 0.35)');
+                areaGradient.addColorStop(0.6, 'rgba(59, 130, 246, 0.08)');
+                areaGradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            } else {
+                areaGradient.addColorStop(0, 'rgba(96, 165, 250, 0.45)');
+                areaGradient.addColorStop(0.6, 'rgba(96, 165, 250, 0.08)');
+                areaGradient.addColorStop(1, 'rgba(96, 165, 250, 0)');
+            }
+
+            areaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Rolling confidence',
+                        data: smoothConfidence,
+                        borderColor: c.accent,
+                        borderWidth: 2.5,
+                        fill: true,
+                        backgroundColor: areaGradient,
+                        tension: 0.45,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: c.accent,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 1000, easing: 'easeOutQuart' },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: c.tooltipBg, titleColor: c.tooltipFg, bodyColor: c.tooltipFg,
+                            padding: 14, cornerRadius: 10, displayColors: false,
+                            titleFont: { size: 13, weight: '700', family: 'Inter' },
+                            bodyFont: { size: 12, family: 'Inter' },
+                            callbacks: {
+                                title: (items) => `Review ${items[0].label}`,
+                                label: (context) => {
+                                    const idx = context.dataIndex;
+                                    const review = allReviews[idx];
+                                    return [
+                                        `Confidence: ${context.parsed.y.toFixed(1)}%`,
+                                        `Sentiment: ${review.predicted.toUpperCase()}`,
+                                        `Category: ${(CATEGORY_META[review.category] || CATEGORY_META.general).label}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: c.label, font: { size: 10, family: 'Inter' }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12, padding: 8 }, grid: { display: false }, border: { display: false } },
+                        y: { min: 50, max: 100, ticks: { color: c.label, font: { size: 10, family: 'Inter' }, callback: v => v + '%', padding: 8 }, grid: { color: c.grid, drawBorder: false }, border: { display: false } }
+                    }
+                }
+            });
+        }
+
+        loadCharts();
+    </script>
+</body>
+</html>
